@@ -1,6 +1,8 @@
 #![no_std]
+#![allow(deprecated)]
+
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol,
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, String,
 };
 
 #[contracterror]
@@ -64,7 +66,7 @@ pub enum DataKey {
 }
 
 const STORAGE_TTL_THRESHOLD: u32 = 17280; // ~1 day in ledgers
-const STORAGE_TTL_EXTEND: u32 = 518400;   // ~30 days in ledgers
+const STORAGE_TTL_EXTEND: u32 = 518400; // ~30 days in ledgers
 
 #[contract]
 pub struct PredictionMarketContract;
@@ -79,7 +81,9 @@ impl PredictionMarketContract {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::MarketCounter, &0u64);
-        env.storage().instance().extend_ttl(STORAGE_TTL_THRESHOLD, STORAGE_TTL_EXTEND);
+        env.storage()
+            .instance()
+            .extend_ttl(STORAGE_TTL_THRESHOLD, STORAGE_TTL_EXTEND);
         Ok(())
     }
 
@@ -118,11 +122,18 @@ impl PredictionMarketContract {
             resolved_at: 0,
         };
 
-        env.storage().persistent().set(&DataKey::Market(counter), &market);
-        env.storage().instance().set(&DataKey::MarketCounter, &counter);
-        env.storage().instance().extend_ttl(STORAGE_TTL_THRESHOLD, STORAGE_TTL_EXTEND);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Market(counter), &market);
+        env.storage()
+            .instance()
+            .set(&DataKey::MarketCounter, &counter);
+        env.storage()
+            .instance()
+            .extend_ttl(STORAGE_TTL_THRESHOLD, STORAGE_TTL_EXTEND);
 
-        env.events().publish((symbol_short!("mkt_new"), counter), market.deadline);
+        env.events()
+            .publish((symbol_short!("mkt_new"), counter), market.deadline);
 
         Ok(counter)
     }
@@ -163,17 +174,13 @@ impl PredictionMarketContract {
 
         // Record bet
         let bet_key = DataKey::UserBet(user.clone(), market_id);
-        let mut user_bet = env
-            .storage()
-            .persistent()
-            .get(&bet_key)
-            .unwrap_or(Bet {
-                user: user.clone(),
-                market_id,
-                outcome: chosen_outcome,
-                amount: 0,
-                claimed: false,
-            });
+        let mut user_bet = env.storage().persistent().get(&bet_key).unwrap_or(Bet {
+            user: user.clone(),
+            market_id,
+            outcome: chosen_outcome,
+            amount: 0,
+            claimed: false,
+        });
 
         // Ensure user does not cross-bet in this simple parimutuel version
         if user_bet.amount > 0 && user_bet.outcome != chosen_outcome {
@@ -190,7 +197,9 @@ impl PredictionMarketContract {
             _ => return Err(Error::InvalidOutcome),
         }
 
-        env.storage().persistent().set(&DataKey::Market(market_id), &market);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Market(market_id), &market);
         env.storage().persistent().set(&bet_key, &user_bet);
 
         env.events().publish(
@@ -239,9 +248,12 @@ impl PredictionMarketContract {
         };
         market.resolved_at = env.ledger().timestamp();
 
-        env.storage().persistent().set(&DataKey::Market(market_id), &market);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Market(market_id), &market);
 
-        env.events().publish((symbol_short!("mkt_res"), market_id), winning_outcome);
+        env.events()
+            .publish((symbol_short!("mkt_res"), market_id), winning_outcome);
 
         Ok(())
     }
@@ -299,7 +311,8 @@ impl PredictionMarketContract {
         bet.claimed = true;
         env.storage().persistent().set(&bet_key, &bet);
 
-        env.events().publish((symbol_short!("mkt_clm"), market_id, user), payout);
+        env.events()
+            .publish((symbol_short!("mkt_clm"), market_id, user), payout);
 
         Ok(payout)
     }
@@ -314,15 +327,19 @@ impl PredictionMarketContract {
 
     /// Read user bet details
     pub fn get_bet(env: Env, user: Address, market_id: u64) -> Option<Bet> {
-        env.storage().persistent().get(&DataKey::UserBet(user, market_id))
+        env.storage()
+            .persistent()
+            .get(&DataKey::UserBet(user, market_id))
     }
 
     /// Read market counter
     pub fn get_market_count(env: Env) -> u64 {
-        env.storage().instance().get(&DataKey::MarketCounter).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::MarketCounter)
+            .unwrap_or(0)
     }
 }
 
 #[cfg(test)]
 mod test;
-

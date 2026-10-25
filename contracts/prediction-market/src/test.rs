@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger}, Env, String};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger},
+    Env, String,
+};
 
 #[test]
 fn test_prediction_market_lifecycle() {
